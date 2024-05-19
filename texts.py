@@ -4,8 +4,10 @@ greet = "Добро пожаловать в книжный магазин!👋\n
 
 signIn = "🙋‍♂️ Пользователь"
 signUp = "👨‍💻 Админ"
+registration = "📍 Регистрация"
 catalog = "📚 Каталог книг"
 back = "⬅️ Назад"
+error = "❗️ Произошла ошибка!"
 
 def get_book_about(Book):
     return f"""ℹ️ Информация о книге:\n
