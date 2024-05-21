@@ -13,13 +13,11 @@ import database
 import texts as tt
 import books
 import user as usr
-import sys
-import pathlib
 
-script_dir = pathlib.Path(sys.argv[0]).parent
-db_file = script_dir / 'data.db'
-conn = sqlite3.connect(db_file)
+
+conn = sqlite3.connect("data.db")
 c = conn.cursor()
+
 
 storage = MemoryStorage()
 bot = Bot(token="7049188608:AAHLPVz1skj5OGVuka88VAHwylSqJy6x0pM")
@@ -38,7 +36,7 @@ async def welcome(message: types.Message):
 @dp.message_handler()
 async def handle_text(message):
     if message.text == tt.signIn:
-        print(message)
+        # print(message)
         await bot.send_message(
             chat_id=message.chat.id,
             text="Вы зашли как пользователь!\nДля просмотра книг нажмите на кнопку ⬇️",
@@ -47,13 +45,9 @@ async def handle_text(message):
     elif message.text == tt.signUp:
         await bot.send_message(
             chat_id=message.chat.id,
-            text="Введите ваш логин:",
-            reply_markup=kb.single_button(kb.btnBackToMain)
+            text=f"Вы перешли в окно авторизации!\nНажмите на кнопку \"{tt.admin}\" ⬇️",
+            reply_markup=kb.get_markup_adminValidation()
         )
-        # TODO: Create a state handler and validate the input data
-        await state_handler.adminDataValidation.login.set()
-        state = Dispatcher.get_current().current_state()
-        await state.update_data(state_message=message.chat.id)
 
     elif message.text == tt.catalog:
         books_list = books.get_books_list()
@@ -78,45 +72,101 @@ async def handle_text(message):
 async def process_callback(callback_query: types.CallbackQuery):
     chat_id = callback_query.message.chat.id
     call_data = callback_query.data
+    if call_data[:6] == "admin_":
+        call_data = call_data[6:]
 
-    if call_data.startswith('bookSelected_'):
-        book_id = call_data.split('_')[1]
-        book = books.get_books_by_id(book_id)
-        await bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=callback_query.message.message_id,
-            text=tt.get_book_about(book),
-            reply_markup=kb.single_button(kb.btnBackBookList),
-        )
+        if call_data == "booksSettings":
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text=tt.books,
+                reply_markup=kb.get_markup_adminBooksSettings()
+            )
 
-    if call_data == 'backToBooksList':
-        books_list = books.get_books_list()
-        await bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=callback_query.message.message_id,
-            text=tt.catalog + ":",
-            reply_markup=kb.get_markup_books(books_list)
-        )
+        if call_data == "checkBooksList":
+            books_list = books.get_books_list()
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text=tt.catalog + ":",
+                reply_markup=kb.get_markup_books(books_list)
+            )
 
-    if call_data == 'backToMain':
-        await bot.send_message(
-            chat_id=chat_id,
-            text=tt.greet,
-            reply_markup=kb.get_markup_main()
-        )
+        if call_data == "addBookToBooksList":
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text="Введите название книги:",
+                reply_markup=kb.single_button(kb.btnBackToAdminSettings)
+            )
+            #TODO: CREATE A STATE HANDLER AND LOGIC ADDING BOOK TO DATABASE
+            await state_handler.addBook.name.set()
+            state = Dispatcher.get_current().current_state()
+            await state.update_data(state_message=callback_query.message.message_id)
 
-    if call_data == "registration":
-        await bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=callback_query.message.message_id,
-            text="Начало регистрации!\nВведите логин:",
-            reply_markup=kb.single_button(kb.btnBackToMain)
-        )
-        await state_handler.registrationData.login.set()
-        state = Dispatcher.get_current().current_state()
-        await state.update_data(state_message=callback_query.message.message_id)
+        if call_data == "usersSettings":
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text=tt.users,
+                reply_markup=kb.get_markup_adminUsersSettings()
+            )
+    else:
+        if call_data == 'backToAdminSettings':
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text="Меню админа:",
+                reply_markup=kb.get_markup_adminValidation_confirmation()
+            )
 
+        if call_data.startswith('bookSelected_'):
+            book_id = call_data.split('_')[1]
+            book = books.get_books_by_id(book_id)
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text=tt.get_book_about(book),
+                reply_markup=kb.single_button(kb.btnBackBookList),
+            )
 
+        if call_data == 'backToBooksList':
+            books_list = books.get_books_list()
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text=tt.catalog + ":",
+                reply_markup=kb.get_markup_books(books_list)
+            )
+
+        if call_data == 'backToMain':
+            await bot.send_message(
+                chat_id=chat_id,
+                text=tt.greet,
+                reply_markup=kb.get_markup_main()
+            )
+
+        if call_data == "registration":
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text="Начало регистрации!\nВведите логин:",
+                reply_markup=kb.single_button(kb.btnBackToMain)
+            )
+            await state_handler.registrationData.login.set()
+            state = Dispatcher.get_current().current_state()
+            await state.update_data(state_message=callback_query.message.message_id)
+
+        if call_data == "adminValidation":
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text="Начало авторизации!\nВведите логин:",
+                reply_markup=kb.single_button(kb.btnBackToMain)
+            )
+            await state_handler.adminDataValidation.admLogin.set()
+            state = Dispatcher.get_current().current_state()
+            await state.update_data(state_message=callback_query.message.message_id)
 
 
 
@@ -135,30 +185,68 @@ async def cancelState(callback_query: types.CallbackQuery, state: FSMContext):
             text="Ваши данные успешно сохранены!",
             reply_markup=kb.get_markup_main()
         )
-        #TODO: SAVING DATA TO DATABASE
-        state = Dispatcher.get_current().current_state()
-        data = await state.get_data()
-        print(chat_id)
-        usr.create_user(usr.User(chat_id, data["login"], data["password"]))
-
-        await bot.send_message(
-            chat_id=chat_id,
-            text="Данные успешно сохранены!",
-            reply_markup=kb.get_markup_main(),
-        )
-
-        await bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=data["state_message"],
-            text="xcscsdcds",
-            reply_markup=kb.get_markup_main(),
-        )
+        usr.create_user(usr.User(int(chat_id), data['login'], data['password']))
         await state.finish()
 
+
+
+
+@dp.message_handler(state=state_handler.adminDataValidation.admLogin)
+async def validateLogin(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    data = await state.get_data()
+    # print(usr.get_user_by_id(user_id).Login)
+    # print(usr.get_user_by_id(user_id).Password)
+    if message.text == usr.get_user_by_id(user_id).Login:
+        await state.update_data(admLogin=message.text)
+
+        await bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=data["state_message"],
+            text="Введите ваш пароль:",
+            reply_markup=kb.single_button(kb.btnBackToMain)
+        )
+    else:
+        await bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=data["state_message"],
+            text=f"{tt.error}\nЛогин введен неправильно!",
+            reply_markup=kb.single_button(kb.btnBackToMain)
+        )
+        return
+
+    await state_handler.adminDataValidation.admPassword.set()
+
+
+@dp.message_handler(state=state_handler.adminDataValidation.admPassword)
+async def validatePassword(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    data = await state.get_data()
+    if message.text == usr.get_user_by_id(user_id).Password:
+        await state.update_data(admLogin=message.text)
+
+        await bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=data["state_message"],
+            text="Вы успешно авторизованы!",
+            reply_markup=kb.get_markup_adminValidation_confirmation()
+        )
+    else:
+        await bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=data["state_message"],
+            text=f"{tt.error}\nЛогин введен неправильно!",
+            reply_markup=kb.single_button(kb.btnBackToMain)
+        )
+        return
+
+    await state_handler.adminDataValidation.confirmation.set()
+    await state.finish()
 
 @dp.message_handler(state=state_handler.registrationData.login)
 async def addLoginSetLogin(message: types.Message, state: FSMContext):
     data = await state.get_data()
+    print(message.from_user.id)
     await state.update_data(login=message.text)
 
     await bot.edit_message_text(
@@ -197,7 +285,6 @@ async def addPasswordSetPassword(message: types.Message, state: FSMContext):
 
 
 if __name__ == '__main__':
-    if not os.path.exists('data.db'):
-        database.create_db()
+    database.create_db()
 
     executor.start_polling(dp, skip_updates=True)
