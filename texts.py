@@ -8,7 +8,7 @@ registration = "📍 Регистрация"
 catalog = "📚 Каталог книг"
 back = "⬅️ Назад"
 error = "❗️ Произошла ошибка!"
-
+confirm = "✅"
 
 #admin
 users = "Пользователи"

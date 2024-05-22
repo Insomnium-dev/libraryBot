@@ -16,6 +16,14 @@ class addBook(StatesGroup):
     author = State()
     genre = State()
     price = State()
+    confirmation = State()
 
+class editBook(StatesGroup):
+    id = State()
+    name = State()
+    author = State()
+    genre = State()
+    price = State()
+    confirmation = State()
 
 
