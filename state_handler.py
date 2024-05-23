@@ -26,4 +26,13 @@ class editBook(StatesGroup):
     price = State()
     confirmation = State()
 
+class addUser(StatesGroup):
+    user_id = State()
+    login = State()
+    password = State()
+    confirmation = State()
+
+class btnBackAdmin(StatesGroup):
+    back = State()
+
 

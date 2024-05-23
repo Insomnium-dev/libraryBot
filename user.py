@@ -33,12 +33,16 @@ def set_password(self, value):
     c.execute(f"UPDATE users SET password=? WHERE user_id=?", [value, self.get_id()])
     conn.commit()
 
+def delete_user(value: int):
+    c.execute('DELETE FROM users WHERE user_id=?',
+              [value])
+    conn.commit()
 
 
 
-def get_user_list():
-    c.execute("SELECT * FROM users")
-    return list(map(User, [user[0] for user in list(c)]))
+def get_users_list(value):
+    c.execute("SELECT * FROM users WHERE user_id!=?",[value])
+    return [User(*tmp) for tmp in list(c)]
 
 def create_user(usr: User):
     c.execute(f"INSERT OR REPLACE INTO users ( user_id, login, password) VALUES ( ?, ?, ?)",

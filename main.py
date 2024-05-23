@@ -14,10 +14,8 @@ import texts as tt
 import books
 import user as usr
 
-
 conn = sqlite3.connect("data.db")
 c = conn.cursor()
-
 
 storage = MemoryStorage()
 bot = Bot(token="7049188608:AAHLPVz1skj5OGVuka88VAHwylSqJy6x0pM")
@@ -75,7 +73,7 @@ async def process_callback(callback_query: types.CallbackQuery):
     if call_data[:6] == "admin_":
         call_data = call_data[6:]
 
-#// books settings
+        # // books settings
         if call_data == "booksSettings":
             await bot.edit_message_text(
                 chat_id=chat_id,
@@ -98,7 +96,7 @@ async def process_callback(callback_query: types.CallbackQuery):
                 chat_id=chat_id,
                 message_id=callback_query.message.message_id,
                 text="Введите название книги:",
-                reply_markup=kb.single_button(kb.btnBackToAdminSettings)
+                reply_markup=kb.single_button(kb.btnBackToAdminBooksSettings)
             )
             await state_handler.addBook.name.set()
             state = Dispatcher.get_current().current_state()
@@ -142,7 +140,6 @@ async def process_callback(callback_query: types.CallbackQuery):
                 reply_markup=kb.get_markup_editBooks(books_list)
             )
 
-
         if call_data.startswith("bookEdit_"):
             book_id = call_data.split('_')[1]
             book = books.get_books_by_id(book_id)
@@ -157,8 +154,7 @@ async def process_callback(callback_query: types.CallbackQuery):
             await state_handler.editBook.name.set()
             await state.update_data(state_message=callback_query.message.message_id)
 
-
-# // user settings
+        # // user settings
         if call_data == "usersSettings":
             await bot.edit_message_text(
                 chat_id=chat_id,
@@ -166,6 +162,57 @@ async def process_callback(callback_query: types.CallbackQuery):
                 text=tt.users,
                 reply_markup=kb.get_markup_adminUsersSettings()
             )
+
+        if call_data == "checkUserList":
+            users_list = usr.get_users_list(chat_id)
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text=tt.users + ":",
+                reply_markup=kb.get_markup_users(users_list)
+            )
+
+        if call_data == "addUser":
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text="Введите id пользователя (только цифры):",
+                reply_markup=kb.single_button(kb.btnBackToAdminUserSettings)
+            )
+            await state_handler.addUser.user_id.set()
+            state = Dispatcher.get_current().current_state()
+            await state.update_data(state_message=callback_query.message.message_id)
+
+        if call_data == "removeUser":
+            users_list = usr.get_users_list(chat_id)
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text="Нажмите на пользователя, которого хотите удалить:",
+                reply_markup=kb.get_markup_deleteUsers(users_list)
+            )
+
+        if call_data.startswith("userDelete_"):
+            usr_id = call_data.split('_')[1]
+            user = usr.get_user_by_id(usr_id)
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text="Вы точно хотите удалить этого пользователя?",
+                reply_markup=kb.get_markup_deleteUser_confirmation(user)
+            )
+
+        if call_data.startswith("deleteUser_"):
+            user_id = call_data.split('_')[1]
+            usr.delete_user(user_id)
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text="Пользователь удален!",
+                reply_markup=kb.get_markup_adminUsersSettings()
+            )
+
+
     else:
         if call_data == 'backToAdminSettings':
             await bot.edit_message_text(
@@ -224,9 +271,6 @@ async def process_callback(callback_query: types.CallbackQuery):
             await state.update_data(state_message=callback_query.message.message_id)
 
 
-
-
-
 @dp.callback_query_handler(state='*')
 async def cancelState(callback_query: types.CallbackQuery, state: FSMContext):
     chat_id = callback_query.message.chat.id
@@ -249,7 +293,7 @@ async def cancelState(callback_query: types.CallbackQuery, state: FSMContext):
             text="Ваши данные успешно сохранены!",
             reply_markup=kb.get_markup_adminValidation_confirmation()
         )
-        books.create_book(books.Book(-1, data['name'], data['author'],data['genre'], data['price']))
+        books.create_book(books.Book(-1, data['name'], data['author'], data['genre'], data['price']))
         await state.finish()
 
     if call_data == "editBookConfirm":
@@ -258,8 +302,82 @@ async def cancelState(callback_query: types.CallbackQuery, state: FSMContext):
             text="Ваши данные успешно сохранены!",
             reply_markup=kb.get_markup_adminValidation_confirmation()
         )
-        books.edit_book(books.Book(data['id'], data['name'], data['author'],data['genre'], data['price']))
+        books.edit_book(books.Book(data['id'], data['name'], data['author'], data['genre'], data['price']))
         await state.finish()
+
+    if call_data == "addUserConfirm":
+        await bot.send_message(
+            chat_id=chat_id,
+            text="Ваши данные успешно сохранены!",
+            reply_markup=kb.get_markup_adminUsersSettings()
+        )
+        usr.create_user(usr.User(data['user_id'], data['login'], data['password']))
+        await state.finish()
+
+
+@dp.message_handler(state=state_handler.addUser.user_id)
+async def addUserIDSetUserID(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    if message.text.isalnum():
+        await state.update_data(user_id=message.text)
+    else:
+        await bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=data["state_message"],
+            text=f"{tt.error}\n Введите ID используя только цифры:",
+            reply_markup=kb.single_button(kb.btnBackToAdminUserSettings)
+        )
+        return
+
+    await bot.edit_message_text(
+        chat_id=message.chat.id,
+        message_id=data["state_message"],
+        text="Введите логин:",
+        reply_markup=kb.single_button(kb.btnBackToAdminUserSettings)
+    )
+
+    await state_handler.addUser.login.set()
+
+
+@dp.message_handler(state=state_handler.addUser.login)
+async def addUserLoginSetUserLogin(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    await state.update_data(login=message.text)
+
+    await bot.edit_message_text(
+        chat_id=message.chat.id,
+        message_id=data["state_message"],
+        text="Введите пароль пользователя не менее 6 символов:",
+        reply_markup=kb.single_button(kb.btnBackToAdminUserSettings)
+    )
+
+    await state_handler.addUser.password.set()
+
+
+@dp.message_handler(state=state_handler.addUser.password)
+async def addUserPasswordSetUserPassword(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+
+    if len(message.text) >= 6:
+        await state.update_data(password=message.text)
+    else:
+        await bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=data["state_message"],
+            text=f"{tt.error} \n""Пожалуйста, введите пароль не менее 6 символов:",
+            reply_markup=kb.single_button(kb.btnBackToAdminUserSettings)
+        )
+        return
+
+    data = await state.get_data()
+    await bot.edit_message_text(
+        chat_id=message.chat.id,
+        message_id=data["state_message"],
+        text=f"Подтвердите правильность данных: \nID: \"{data['user_id']}\", \nЛогин: {data['login']}, \nПароль: {data['password']}",
+        reply_markup=kb.get_markup_addUser_confirmation()
+    )
+
+    await state_handler.addUser.confirmation.set()
 
 
 @dp.message_handler(state=state_handler.editBook.name)
@@ -271,10 +389,11 @@ async def editBookSetBook(message: types.Message, state: FSMContext):
         chat_id=message.chat.id,
         message_id=data["state_message"],
         text="Введите автора книги в формате: Фамилия И.О.",
-        reply_markup=kb.single_button(kb.btnBackToAdminSettings)
+        reply_markup=kb.single_button(kb.btnBackToAdminBooksSettings)
     )
 
     await state_handler.editBook.author.set()
+
 
 @dp.message_handler(state=state_handler.editBook.author)
 async def editAuthorSetAuthor(message: types.Message, state: FSMContext):
@@ -285,10 +404,11 @@ async def editAuthorSetAuthor(message: types.Message, state: FSMContext):
         chat_id=message.chat.id,
         message_id=data["state_message"],
         text="Введите жанр книги:",
-        reply_markup=kb.single_button(kb.btnBackToAdminSettings)
+        reply_markup=kb.single_button(kb.btnBackToAdminBooksSettings)
     )
 
     await state_handler.editBook.genre.set()
+
 
 @dp.message_handler(state=state_handler.editBook.genre)
 async def editGenreSetGenre(message: types.Message, state: FSMContext):
@@ -299,10 +419,11 @@ async def editGenreSetGenre(message: types.Message, state: FSMContext):
         chat_id=message.chat.id,
         message_id=data["state_message"],
         text="Введите цену книги:",
-        reply_markup=kb.single_button(kb.btnBackToAdminSettings)
+        reply_markup=kb.single_button(kb.btnBackToAdminBooksSettings)
     )
 
     await state_handler.editBook.price.set()
+
 
 @dp.message_handler(state=state_handler.editBook.price)
 async def editPriceSetPrice(message: types.Message, state: FSMContext):
@@ -318,6 +439,7 @@ async def editPriceSetPrice(message: types.Message, state: FSMContext):
 
     await state_handler.editBook.confirmation.set()
 
+
 @dp.message_handler(state=state_handler.addBook.name)
 async def addBookSetBook(message: types.Message, state: FSMContext):
     data = await state.get_data()
@@ -327,10 +449,11 @@ async def addBookSetBook(message: types.Message, state: FSMContext):
         chat_id=message.chat.id,
         message_id=data["state_message"],
         text="Введите автора книги в формате: Фамилия И.О.",
-        reply_markup=kb.single_button(kb.btnBackToAdminSettings)
+        reply_markup=kb.single_button(kb.btnBackToAdminBooksSettings)
     )
 
     await state_handler.addBook.author.set()
+
 
 @dp.message_handler(state=state_handler.addBook.author)
 async def addAuthorSetAuthor(message: types.Message, state: FSMContext):
@@ -341,10 +464,11 @@ async def addAuthorSetAuthor(message: types.Message, state: FSMContext):
         chat_id=message.chat.id,
         message_id=data["state_message"],
         text="Введите жанр книги:",
-        reply_markup=kb.single_button(kb.btnBackToAdminSettings)
+        reply_markup=kb.single_button(kb.btnBackToAdminBooksSettings)
     )
 
     await state_handler.addBook.genre.set()
+
 
 @dp.message_handler(state=state_handler.addBook.genre)
 async def addAGenreSetGenre(message: types.Message, state: FSMContext):
@@ -355,10 +479,11 @@ async def addAGenreSetGenre(message: types.Message, state: FSMContext):
         chat_id=message.chat.id,
         message_id=data["state_message"],
         text="Введите цену книги:",
-        reply_markup=kb.single_button(kb.btnBackToAdminSettings)
+        reply_markup=kb.single_button(kb.btnBackToAdminBooksSettings)
     )
 
     await state_handler.addBook.price.set()
+
 
 @dp.message_handler(state=state_handler.addBook.price)
 async def addPriceSetPrice(message: types.Message, state: FSMContext):
@@ -426,6 +551,7 @@ async def validatePassword(message: types.Message, state: FSMContext):
 
     await state_handler.adminDataValidation.confirmation.set()
     await state.finish()
+
 
 @dp.message_handler(state=state_handler.registrationData.login)
 async def addLoginSetLogin(message: types.Message, state: FSMContext):
