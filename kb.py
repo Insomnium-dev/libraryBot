@@ -85,7 +85,7 @@ def get_markup_books(books: list[Book]):
     for book in books:
         markup.add(types.InlineKeyboardButton(text=f"{book.Id}.\"{book.Name}\",\nАвтор:{book.Author}",
                                               callback_data=f"bookSelected_{book.Id}"))
-    markup.add(btnBackToMain)
+    markup.add(btnBackToAdminBooksSettings)
     return markup
 
 def get_markup_users(users: list[User]):

@@ -32,7 +32,5 @@ class addUser(StatesGroup):
     password = State()
     confirmation = State()
 
-class btnBackAdmin(StatesGroup):
-    back = State()
 
 

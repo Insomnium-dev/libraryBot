@@ -278,6 +278,38 @@ async def cancelState(callback_query: types.CallbackQuery, state: FSMContext):
     state = Dispatcher.get_current().current_state()
     data = await state.get_data()
 
+    if call_data == 'backToMain':
+        await bot.send_message(
+            chat_id=chat_id,
+            text="Главное меню:",
+            reply_markup=kb.get_markup_main()
+        )
+        await state.finish()
+
+    if call_data == "backToAdminSettings":
+        await bot.send_message(
+            chat_id=chat_id,
+            text="Меню админа:",
+            reply_markup=kb.get_markup_main()
+        )
+        await state.finish()
+
+    if call_data == "admin_booksSettings":
+        await bot.send_message(
+            chat_id=chat_id,
+            text="Меню книг",
+            reply_markup=kb.get_markup_adminBooksSettings()
+        )
+        await state.finish()
+
+    if call_data == "admin_usersSettings":
+        await bot.send_message(
+            chat_id=chat_id,
+            text="Меню пользователей",
+            reply_markup=kb.get_markup_adminUsersSettings()
+        )
+        await state.finish()
+
     if call_data == "registrationConfirm":
         await bot.send_message(
             chat_id=chat_id,
