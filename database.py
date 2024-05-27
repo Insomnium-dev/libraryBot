@@ -12,6 +12,15 @@ CREATE TABLE IF NOT EXISTS "books"  (
 	)
 """
 
+CREATE_ORDERS_TABLE = """
+CREATE TABLE IF NOT EXISTS "orders"  (
+	"order_id" INTEGER,
+	"user_id" INTEGER,
+	"item_list" TEXT,
+	PRIMARY KEY("order_id")
+    )
+"""
+
 CREATE_USERS_TABLE = """
 CREATE TABLE IF NOT EXISTS "users"  (
 	"user_id" INTEGER NOT NULL,
@@ -28,6 +37,7 @@ def create_db():
 
     c.execute(CREATE_BOOKS_TABLE)
     c.execute(CREATE_USERS_TABLE)
+    c.execute(CREATE_ORDERS_TABLE)
 
     for idx in range(1, 5):
         c.execute(f'INSERT OR REPLACE INTO books ( id,name,author,genre, price ) VALUES ( {idx}, "Война и мир", "Толстой Л.Н.","Драма", 23.6 )',

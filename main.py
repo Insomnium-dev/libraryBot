@@ -12,6 +12,7 @@ import state_handler
 import database
 import texts as tt
 import books
+import order as ord
 import user as usr
 
 conn = sqlite3.connect("data.db")
@@ -45,6 +46,15 @@ async def handle_text(message):
             chat_id=message.chat.id,
             text=f"Вы перешли в окно авторизации!\nНажмите на кнопку \"{tt.admin}\" ⬇️",
             reply_markup=kb.get_markup_adminValidation()
+        )
+
+    elif message.text == tt.my_orders:
+        orders_list = ord.get_orders(message.chat.id)
+        print(orders_list.Item_list)
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text=tt.my_orders + ":",
+            reply_markup=kb.get_markup_orders(orders_list)
         )
 
     elif message.text == tt.catalog:
@@ -229,6 +239,17 @@ async def process_callback(callback_query: types.CallbackQuery):
                 chat_id=chat_id,
                 message_id=callback_query.message.message_id,
                 text=tt.get_book_about(book),
+                reply_markup=kb.get_markup_selectedBook(book),
+            )
+
+        if call_data.startswith('newOrder_'):
+            book_id = call_data.split('_')[1]
+            book = books.get_books_by_id(book_id)
+            ord.create_order(ord.Order(-1, chat_id,f"{book.Id},{book.Name},{book.Author},{book.Genre},{book.Price}"))
+            await bot.edit_message_text(
+                chat_id=chat_id,
+                message_id=callback_query.message.message_id,
+                text="Ваш заказ успешно сформирован!",
                 reply_markup=kb.single_button(kb.btnBackBookList),
             )
 

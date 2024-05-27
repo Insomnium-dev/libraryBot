@@ -3,6 +3,7 @@ from aiogram import types
 import texts as tt
 from books import Book
 from user import User
+from order import Order
 
 # some buttons
 btnBackBookList = types.InlineKeyboardButton(text=tt.back, callback_data="backToBooksList")
@@ -36,6 +37,7 @@ def get_markup_main():
 def get_markup_signIn():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(types.KeyboardButton(text=tt.catalog))
+    markup.add(types.KeyboardButton(text=tt.my_orders))
     return markup
 
 
@@ -86,6 +88,21 @@ def get_markup_books(books: list[Book]):
         markup.add(types.InlineKeyboardButton(text=f"{book.Id}.\"{book.Name}\",\nАвтор:{book.Author}",
                                               callback_data=f"bookSelected_{book.Id}"))
     markup.add(btnBackToAdminBooksSettings)
+    return markup
+
+def get_markup_orders(orders: list[Order]):
+    markup = types.InlineKeyboardMarkup(resize_keyboard=True)
+    for order in orders:
+        markup.add(types.InlineKeyboardButton(text=f"[{order.Order_id}]",
+                                              callback_data=f"orderSelected_{order.Order_id}"))
+    markup.add(btnBackToAdminBooksSettings)
+    return markup
+
+def get_markup_selectedBook(book:Book):
+    markup = types.InlineKeyboardMarkup(resize_keyboard=True)
+    markup.add(types.InlineKeyboardButton(text=f"Заказать!",
+                                          callback_data=f"newOrder_{book.Id}"))
+    markup.add(btnBackBookList)
     return markup
 
 def get_markup_users(users: list[User]):
